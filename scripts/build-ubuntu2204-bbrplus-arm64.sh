@@ -43,7 +43,7 @@ done
 
 if [[ "${SKIP_BUILD}" != "1" ]]; then
   require_cmd fakeroot
-  require_cmd gcc-aarch64-linux-gnu
+  require_cmd aarch64-linux-gnu-gcc
 fi
 
 rm -rf "${PATCHED_DIR}" "${DIST_DIR}"
