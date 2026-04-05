@@ -44,7 +44,7 @@ jobs:
           sudo apt-get install -y \
             bc bison build-essential ca-certificates cpio debhelper devscripts \
             dwarves fakeroot flex git kmod libelf-dev libncurses-dev \
-            libssl-dev lz4 pahole python3 rsync xz-utils \
+            libssl-dev lz4 pahole python3 rsync xz-utils zstd \
             gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Make build script executable
@@ -72,5 +72,6 @@ jobs:
             Built from official Linux 6.7 source:
             - Kernel version: `${{ env.KERNEL_VERSION }}`
             - Architecture: `arm64`
+            - Oracle cloud config baseline: `6.8.0-1047-oracle`
             - Congestion control default: `bbrplus`
           files: dist/*
