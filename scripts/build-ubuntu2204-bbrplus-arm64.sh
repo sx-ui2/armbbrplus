@@ -62,12 +62,12 @@ patch -p1 --forward < "${PATCH_DIR}/convert_official_linux-6.7.x_src_to_bbrplus.
 
 "${MAKE_CMD}" ARCH=arm64 defconfig
 "${PATCHED_DIR}/scripts/kconfig/merge_config.sh" -m .config "${FRAGMENT}"
-yes "" | "${MAKE_CMD}" ARCH=arm64 olddefconfig
+"${MAKE_CMD}" ARCH=arm64 olddefconfig </dev/null
 
 "${PATCHED_DIR}/scripts/config" --disable SECURITY_LOCKDOWN_LSM
 "${PATCHED_DIR}/scripts/config" --disable DEBUG_INFO
 "${PATCHED_DIR}/scripts/config" --disable MODULE_SIG
-yes "" | "${MAKE_CMD}" ARCH=arm64 olddefconfig
+"${MAKE_CMD}" ARCH=arm64 olddefconfig </dev/null
 
 if [[ "${SKIP_BUILD}" == "1" ]]; then
   cp .config "${DIST_DIR}/config-${KERNEL_VERSION}${LOCALVERSION}"
