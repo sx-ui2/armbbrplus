@@ -1,0 +1,76 @@
+name: Build Ubuntu 22.04 BBRplus ARM64 Kernel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      kernel_version:
+        description: Linux 6.7 source version to build
+        required: true
+        default: "6.7.9"
+      publish_release:
+        description: Publish packages to a GitHub release
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbrplus-arm64-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      KERNEL_VERSION: ${{ github.event.inputs.kernel_version || '6.7.9' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ca-certificates cpio debhelper devscripts \
+            dwarves fakeroot flex git kmod libelf-dev libncurses-dev \
+            libssl-dev lz4 pahole python3 rsync xz-utils \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Make build script executable
+        run: chmod +x scripts/build-ubuntu2204-bbrplus-arm64.sh
+
+      - name: Build ARM64 BBRplus kernel packages
+        run: bash scripts/build-ubuntu2204-bbrplus-arm64.sh
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu2204-bbrplus-arm64-${{ env.KERNEL_VERSION }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.KERNEL_VERSION }}-bbrplus
+          name: ${{ env.KERNEL_VERSION }}-bbrplus
+          body: |
+            Ubuntu 22.04 ARM64 BBRplus kernel packages.
+
+            Built from official Linux 6.7 source:
+            - Kernel version: `${{ env.KERNEL_VERSION }}`
+            - Architecture: `arm64`
+            - Congestion control default: `bbrplus`
+          files: dist/*
