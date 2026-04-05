@@ -103,6 +103,9 @@ apply_fragment
 "${PATCHED_DIR}/scripts/config" --disable SECURITY_LOCKDOWN_LSM
 "${PATCHED_DIR}/scripts/config" --disable DEBUG_INFO
 "${PATCHED_DIR}/scripts/config" --disable MODULE_SIG
+"${PATCHED_DIR}/scripts/config" --disable MODULE_SIG_ALL
+"${PATCHED_DIR}/scripts/config" --set-str SYSTEM_TRUSTED_KEYS ""
+"${PATCHED_DIR}/scripts/config" --set-str SYSTEM_REVOCATION_KEYS ""
 "${MAKE_CMD}" ARCH=arm64 olddefconfig </dev/null
 
 if [[ "${SKIP_BUILD}" == "1" ]]; then
