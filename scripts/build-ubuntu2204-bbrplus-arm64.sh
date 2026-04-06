@@ -121,8 +121,14 @@ export KDEB_PKGVERSION="${KERNEL_VERSION}${LOCALVERSION}-${PKGREV}"
 
 "${MAKE_CMD}" -j"${JOBS}" bindeb-pkg
 
-find "${WORK_DIR}" -maxdepth 1 -type f \( -name '*.deb' -o -name '*.changes' -o -name '*.buildinfo' \) -exec mv -t "${DIST_DIR}" {} +
+find "${WORK_DIR}" -maxdepth 1 -type f \
+  \( -name "*${KERNEL_VERSION}${LOCALVERSION}*.deb" -o -name "*${KERNEL_VERSION}${LOCALVERSION}*.changes" -o -name "*${KERNEL_VERSION}${LOCALVERSION}*.buildinfo" \) \
+  -exec mv -t "${DIST_DIR}" {} +
 cp .config "${DIST_DIR}/config-${KERNEL_VERSION}${LOCALVERSION}"
+
+# GitHub Releases rejects assets larger than 2 GiB, and the debug package is
+# not needed for installation on target VPS instances.
+rm -f "${DIST_DIR}"/*-dbg_*.deb
 
 (
   cd "${DIST_DIR}"
