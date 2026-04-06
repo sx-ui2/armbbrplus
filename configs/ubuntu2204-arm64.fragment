@@ -2,6 +2,10 @@ CONFIG_TCP_CONG_BBRPLUS=y
 CONFIG_DEFAULT_BBRPLUS=y
 # CONFIG_DEFAULT_BBR is not set
 CONFIG_DEFAULT_TCP_CONG="bbrplus"
+# Upstream arm64 builddeb packages vmlinuz.efi when EFI_ZBOOT is enabled.
+# OCI's Ubuntu/Oracle GRUB on this ARM shape fails to load that artifact with
+# "invalid magic number", while Image.gz is the expected bootable format.
+# CONFIG_EFI_ZBOOT is not set
 CONFIG_VIRTIO_PCI=y
 CONFIG_VIRTIO_BLK=y
 CONFIG_VIRTIO_NET=y
