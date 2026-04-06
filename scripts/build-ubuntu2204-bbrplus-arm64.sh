@@ -118,6 +118,7 @@ export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 export LOCALVERSION
 export KDEB_PKGVERSION="${KERNEL_VERSION}${LOCALVERSION}-${PKGREV}"
+export INSTALL_MOD_STRIP=1
 
 "${MAKE_CMD}" -j"${JOBS}" bindeb-pkg
 
