@@ -72,128 +72,101 @@ script_path = Path(sys.argv[1])
 api_url = sys.argv[2]
 text = script_path.read_text()
 
-replacement = f'''installbbrplus() {{
+override_block = f'''# sx-ui2 armbbrplus override
+sxui_find_arm_release_tag() {{
+\tlocal suffix="$1"
+\tlocal api_url='{api_url}'
+\tpython3 -c 'import json,sys,urllib.request
+url,suffix=sys.argv[1],sys.argv[2]
+req=urllib.request.Request(url, headers={{"Accept":"application/vnd.github+json"}})
+with urllib.request.urlopen(req) as resp:
+\tdata=json.load(resp)
+tags=[item.get("tag_name","") for item in data if item.get("tag_name","").endswith(suffix)]
+if not tags:
+\traise SystemExit(1)
+def norm(tag):
+\tcore=tag[:-len(suffix)] if suffix and tag.endswith(suffix) else tag
+\tout=[]
+\tfor piece in core.split("."):
+\t\tout.append(int(piece) if piece.isdigit() else piece)
+\treturn out
+tags.sort(key=norm, reverse=True)
+print(tags[0])' "$api_url" "$suffix"
+}}
+
+sxui_download_arm_release_debs() {{
+\tlocal release_tag="$1"
+\tlocal workdir="$2"
+\tlocal api_url='{api_url}'
+\tpython3 -c 'import json,os,sys,urllib.request
+url,workdir=sys.argv[1],sys.argv[2]
+req=urllib.request.Request(url, headers={{"Accept":"application/vnd.github+json"}})
+with urllib.request.urlopen(req) as resp:
+\tdata=json.load(resp)
+assets=[asset for asset in data.get("assets", []) if asset.get("name","").endswith(".deb")]
+if not assets:
+\tsys.stderr.write("release has no .deb assets\\\\n")
+\traise SystemExit(1)
+for asset in assets:
+\tpath=os.path.join(workdir, asset["name"])
+\twith urllib.request.urlopen(asset["browser_download_url"]) as src, open(path, "wb") as dst:
+\t\tdst.write(src.read())' "${{api_url}}/tags/${{release_tag}}" "$workdir"
+}}
+
+sxui_install_arm_bbrplus_release() {{
 \tkernel_version="bbrplus-custom"
 \tbit=$(uname -m)
 \trm -rf bbrplus
 \tmkdir bbrplus && cd bbrplus || exit
-\tif [[ "${{OS_type}}" == "Debian" && ( "${{bit}}" == "aarch64" || "${{bit}}" == "arm64" ) ]]; then
-\t\tlocal version_id
-\t\tversion_id="$(. /etc/os-release && echo "${{VERSION_ID:-}}")"
-\t\tlocal target_suffix=""
-\t\tcase "$version_id" in
-\t\t\t22.04) target_suffix="-bbrplus" ;;
-\t\t\t24.04) target_suffix="-bbrplus-ubuntu2404" ;;
-\t\t\t*)
-\t\t\t\techo -e "${{Error}} ARM64 当前只支持 Ubuntu 22.04 / 24.04 使用仓库内核 !" && exit 1
-\t\t\t\t;;
-\t\tesac
-\t\tlocal release_tag
-\t\trelease_tag="$(
-\t\t\tpython3 - "{api_url}" "$target_suffix" <<'INNERPY'
-import json, sys, urllib.request
-url, suffix = sys.argv[1], sys.argv[2]
-req = urllib.request.Request(url, headers={{"Accept": "application/vnd.github+json"}})
-with urllib.request.urlopen(req) as resp:
-\tdata = json.load(resp)
-tags = [item.get("tag_name", "") for item in data if item.get("tag_name", "").endswith(suffix)]
-if not tags:
-\tsys.exit(1)
-def norm(tag: str):
-\tcore = tag[:-len(suffix)] if suffix and tag.endswith(suffix) else tag
-\tparts = []
-\tfor piece in core.split("."):
-\t\ttry:
-\t\t\tparts.append(int(piece))
-\t\texcept ValueError:
-\t\t\tparts.append(piece)
-\treturn parts
-tags.sort(key=norm, reverse=True)
-print(tags[0])
-INNERPY
-\t\t)" || {{
-\t\t\techo -e "${{Error}} 无法从 {api_url.rsplit('/', 1)[0]} 找到匹配 ARM64 系统的 release !" && exit 1
-\t\t}}
-\t\techo -e "${{Info}} ARM64 BBRplus 将使用 release: $release_tag"
-\t\tpython3 - "{api_url}/tags/${{release_tag}}" "$(pwd)" <<'INNERPY'
-import json, os, sys, urllib.request
-url, workdir = sys.argv[1], sys.argv[2]
-req = urllib.request.Request(url, headers={{"Accept": "application/vnd.github+json"}})
-with urllib.request.urlopen(req) as resp:
-\tdata = json.load(resp)
-assets = [a for a in data.get("assets", []) if a.get("name", "").endswith(".deb")]
-if not assets:
-\tsys.stderr.write("release has no .deb assets\\n")
-\tsys.exit(1)
-for asset in assets:
-\tasset_url = asset["browser_download_url"]
-\tpath = os.path.join(workdir, asset["name"])
-\twith urllib.request.urlopen(asset_url) as src, open(path, "wb") as dst:
-\t\tdst.write(src.read())
-INNERPY
-\t\tmapfile -t headers_pkgs < <(find . -maxdepth 1 -type f -name 'linux-headers-*.deb' | sort)
-\t\tmapfile -t modules_pkgs < <(find . -maxdepth 1 -type f -name 'linux-modules-*.deb' | sort)
-\t\tmapfile -t image_pkgs < <(find . -maxdepth 1 -type f \\( -name 'linux-image-*.deb' -o -name 'linux-*image*.deb' \\) | sort)
-\t\tmapfile -t extra_pkgs < <(find . -maxdepth 1 -type f \\( -name 'linux-libc-dev*.deb' -o -name 'linux-tools-*.deb' -o -name 'linux-cloud-tools-*.deb' \\) | sort)
-\t\t[[ ${{#image_pkgs[@]}} -gt 0 ]] || {{
-\t\t\techo -e "${{Error}} release 里没有找到 linux-image-*.deb !" && exit 1
-\t\t}}
-\t\tdpkg -i "${{headers_pkgs[@]}}" "${{modules_pkgs[@]}}" "${{image_pkgs[@]}}" "${{extra_pkgs[@]}}"
-\t\tapt-get -f install -y
-\t\tkernel_version="${{release_tag}}"
-\telse
-\t\tif [[ "${{OS_type}}" == "CentOS" ]]; then
-\t\t\tif [[ ${{version}} == "7" ]]; then
-\t\t\t\tif [[ ${{bit}} == "x86_64" ]]; then
-\t\t\t\t\tkernel_version="4.14.129_bbrplus"
-\t\t\t\t\tdetele_kernel_head
-\t\t\t\t\theadurl=https://github.com/cx9208/Linux-NetSpeed/raw/master/bbrplus/centos/7/kernel-headers-4.14.129-bbrplus.rpm
-\t\t\t\t\timgurl=https://github.com/cx9208/Linux-NetSpeed/raw/master/bbrplus/centos/7/kernel-4.14.129-bbrplus.rpm
-
-\t\t\t\t\theadurl=$(check_cn $headurl)
-\t\t\t\t\timgurl=$(check_cn $imgurl)
-
-\t\t\t\t\tdownload_file "$headurl" kernel-headers-c7.rpm
-\t\t\t\t\tdownload_file "$imgurl" kernel-c7.rpm
-\t\t\t\t\tyum install -y kernel-c7.rpm
-\t\t\t\t\tyum install -y kernel-headers-c7.rpm
-\t\t\t\telse
-\t\t\t\t\techo -e "${{Error}} 不支持x86_64以外的系统 !" && exit 1
-\t\t\t\tfi
-\t\t\tfi
-
-\t\telif [[ "${{OS_type}}" == "Debian" ]]; then
-\t\t\tif [[ ${{bit}} == "x86_64" ]]; then
-\t\t\t\tkernel_version="4.14.129-bbrplus"
-\t\t\t\tdetele_kernel_head
-\t\t\t\theadurl=https://github.com/cx9208/Linux-NetSpeed/raw/master/bbrplus/debian-ubuntu/x64/linux-headers-4.14.129-bbrplus.deb
-\t\t\t\timgurl=https://github.com/cx9208/Linux-NetSpeed/raw/master/bbrplus/debian-ubuntu/x64/linux-image-4.14.129-bbrplus.deb
-
-\t\t\t\theadurl=$(check_cn $headurl)
-\t\t\t\timgurl=$(check_cn $imgurl)
-
-\t\t\t\twget -O linux-headers.deb "$headurl"
-\t\t\t\twget -O linux-image.deb "$imgurl"
-
-\t\t\t\tdpkg -i linux-image.deb
-\t\t\t\tdpkg -i linux-headers.deb
-\t\t\telse
-\t\t\t\techo -e "${{Error}} 不支持x86_64以外的系统 !" && exit 1
-\t\t\tfi
-\t\tfi
+\tif [[ "${{OS_type}}" != "Debian" || ( "${{bit}}" != "aarch64" && "${{bit}}" != "arm64" ) ]]; then
+\t\techo -e "${{Error}} ARM64 当前只支持 Debian/Ubuntu 使用仓库内核 !" && exit 1
 \tfi
-
+\tlocal version_id target_suffix release_tag
+\tversion_id="$(. /etc/os-release && echo "${{VERSION_ID:-}}")"
+\tcase "$version_id" in
+\t\t22.04) target_suffix="-bbrplus" ;;
+\t\t24.04) target_suffix="-bbrplus-ubuntu2404" ;;
+\t\t*)
+\t\t\techo -e "${{Error}} ARM64 当前只支持 Ubuntu 22.04 / 24.04 使用仓库内核 !" && exit 1
+\t\t\t;;
+\tesac
+\trelease_tag="$(sxui_find_arm_release_tag "$target_suffix")" || {{
+\t\techo -e "${{Error}} 无法从 sx-ui2/armbbrplus 找到匹配 ARM64 系统的 release !" && exit 1
+\t}}
+\techo -e "${{Info}} ARM64 BBRplus 将使用 release: $release_tag"
+\tsxui_download_arm_release_debs "$release_tag" "$(pwd)" || {{
+\t\techo -e "${{Error}} 下载 ARM64 BBRplus release 失败 !" && exit 1
+\t}}
+\tmapfile -t headers_pkgs < <(find . -maxdepth 1 -type f -name "linux-headers-*.deb" | sort)
+\tmapfile -t modules_pkgs < <(find . -maxdepth 1 -type f -name "linux-modules-*.deb" | sort)
+\tmapfile -t image_pkgs < <(find . -maxdepth 1 -type f \\( -name "linux-image-*.deb" -o -name "linux-*image*.deb" \\) | sort)
+\tmapfile -t extra_pkgs < <(find . -maxdepth 1 -type f \\( -name "linux-libc-dev*.deb" -o -name "linux-tools-*.deb" -o -name "linux-cloud-tools-*.deb" \\) | sort)
+\t[[ ${{#image_pkgs[@]}} -gt 0 ]] || {{
+\t\techo -e "${{Error}} release 里没有找到 linux-image-*.deb !" && exit 1
+\t}}
+\tdpkg -i "${{headers_pkgs[@]}}" "${{modules_pkgs[@]}}" "${{image_pkgs[@]}}" "${{extra_pkgs[@]}}"
+\tapt-get -f install -y
+\tkernel_version="${{release_tag}}"
 \tcd .. && rm -rf bbrplus
 \tBBR_grub
 \techo -e "${{Tip}} 内核安装完毕，请参考上面的信息检查是否安装成功,默认从排第一的高版本内核启动"
 \tcheck_kernel
 }}
-'''
 
-pattern = re.compile(r'installbbrplus\(\)\s*\{.*?\n\}\n\n#安装Lotserver内核', re.S)
-new_text, count = pattern.subn(replacement + '\n#安装Lotserver内核', text, count=1)
+installbbrplus() {{
+\tsxui_install_arm_bbrplus_release
+}}
+
+installbbrplusnew() {{
+\tsxui_install_arm_bbrplus_release
+}}
+
+#############系统检测组件#############'''
+
+pattern = re.compile(r'#############系统检测组件#############', re.S)
+new_text, count = pattern.subn(override_block, text, count=1)
 if count != 1:
-    raise SystemExit("failed to patch installbbrplus()")
+    raise SystemExit("failed to inject armbbrplus override block")
 script_path.write_text(new_text)
 PY
 }
@@ -204,9 +177,9 @@ main() {
   require_cmd dpkg
   detect_target
 
-  local work_dir script_path
+  local work_dir="" script_path=""
   work_dir="$(mktemp -d /tmp/tcpx-launch.XXXXXX)"
-  trap 'rm -rf "${work_dir}"' EXIT
+  trap '[[ -n "${work_dir:-}" ]] && rm -rf "${work_dir}"' EXIT
   script_path="${work_dir}/tcpx.sh"
 
   download_upstream_script "${script_path}"
