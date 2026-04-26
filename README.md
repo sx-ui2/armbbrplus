@@ -1,8 +1,8 @@
 # armbbrplus
 
-GitHub Actions auto-builds an Ubuntu 22.04 compatible ARM64 `6.7.9-bbrplus` kernel package set.
+GitHub Actions auto-builds an Ubuntu 22.04 compatible ARM64 `6.8.x-bbrplus` kernel package set.
 
-This repository keeps the `6.7.x` BBRplus conversion patch inside the repo and builds from the official Linux `6.7.9` source tarball from `kernel.org`, so the workflow does not depend on a third-party patch URL at build time.
+This repository keeps the `6.8.x` BBRplus conversion patch inside the repo and builds from the official Linux `6.8.x` source tarball from `kernel.org`, so the workflow does not depend on a third-party patch URL at build time.
 To improve Oracle Cloud ARM compatibility, the build now imports the official Ubuntu Oracle ARM64 kernel config from the published `linux-headers-6.8.0-1047-oracle` package and layers the minimal BBRplus delta on top of that baseline.
 
 ## What It Builds
@@ -16,12 +16,12 @@ To improve Oracle Cloud ARM compatibility, the build now imports the official Ub
 ## Current Baseline
 
 - Target distro: Ubuntu 22.04 ARM64
-- Kernel line: Linux 6.7
-- Default kernel version: `6.7.9`
+- Kernel line: Linux 6.8
+- Default kernel version: auto-detect latest `6.8.x`
 - Oracle config baseline: `6.8.0-1047-oracle`
 - Resulting kernel release suffix: `-bbrplus`
 
-This repo is aligned to the public `6.7.9-bbrplus` patch line from `UJX6N/bbrplus-6.x_stable`. The workflow is intentionally pinned to `6.7.9`, because the vendored patch is for the `6.7.x` source line.
+This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplus-6.x_stable`. The workflow now auto-detects the newest upstream `6.8.x` stable release from `kernel.org`, while still using the vendored `6.8.x` patch in this repository.
 
 ## Workflow
 
@@ -42,12 +42,14 @@ Open:
 
 Inputs:
 
-- `kernel_version`: defaults to `6.7.9`
+- `kernel_version`: optional, leave blank to auto-pick the latest `6.8.x`
 - `publish_release`: whether to upload the generated packages to a GitHub release
 
 When `publish_release` is enabled, the workflow creates or updates a release named like:
 
-- `6.7.9-bbrplus`
+- `6.8.12-bbrplus`
+
+There is also a weekly scheduled run that checks `kernel.org` for the newest `6.8.x` and refreshes the corresponding release automatically.
 
 ## Local Build
 
@@ -58,7 +60,7 @@ sudo apt-get install -y \
   fakeroot flex git kmod libelf-dev libncurses-dev libssl-dev lz4 pahole \
   python3 rsync xz-utils zstd gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
-KERNEL_VERSION=6.7.9 bash scripts/build-ubuntu2204-bbrplus-arm64.sh
+KERNEL_VERSION=6.8.12 bash scripts/build-ubuntu2204-bbrplus-arm64.sh
 ```
 
 Artifacts will be written into:
@@ -97,7 +99,7 @@ sysctl net.ipv4.tcp_congestion_control
 
 ## Patch Source
 
-The vendored BBRplus patch set under `patches/6.7/` is based on:
+The vendored BBRplus patch set under `patches/6.8/` is based on:
 
 - `UJX6N/bbrplus-6.x_stable`
 - `convert_official_linux-6.7.x_src_to_bbrplus.patch`

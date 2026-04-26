@@ -1,15 +1,17 @@
-name: Build Ubuntu 22.04 BBRplus ARM64 Kernel
+name: Build Ubuntu 22.04 BBRplus ARM64 Kernel (6.8.x)
 
 on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "0 4 * * 1"
   workflow_dispatch:
     inputs:
       kernel_version:
-        description: Linux 6.7 source version to build
-        required: true
-        default: "6.7.9"
+        description: Linux 6.8 source version to build (留空则自动取最新 6.8.x)
+        required: false
+        default: ""
       publish_release:
         description: Publish packages to a GitHub release
         required: true
@@ -26,11 +28,35 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    env:
-      KERNEL_VERSION: ${{ github.event.inputs.kernel_version || '6.7.9' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Resolve latest 6.8.x kernel version
+        id: version
+        env:
+          REQUESTED_KERNEL_VERSION: ${{ github.event.inputs.kernel_version || '' }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${REQUESTED_KERNEL_VERSION}" ]]; then
+            kernel_version="${REQUESTED_KERNEL_VERSION}"
+          else
+            kernel_version="$(
+              curl -fsSL https://www.kernel.org/pub/linux/kernel/v6.x/ \
+                | grep -o 'linux-6\.8\.[0-9]\+\.tar\.xz' \
+                | sed 's/^linux-//;s/\.tar\.xz$//' \
+                | sort -V \
+                | tail -n 1
+            )"
+          fi
+
+          if [[ -z "${kernel_version}" ]]; then
+            echo "failed to resolve latest 6.8.x kernel version" >&2
+            exit 1
+          fi
+
+          echo "kernel_version=${kernel_version}" >> "${GITHUB_OUTPUT}"
+          echo "KERNEL_VERSION=${kernel_version}" >> "${GITHUB_ENV}"
 
       - name: Free disk space
         run: |
@@ -56,12 +82,12 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu2204-bbrplus-arm64-${{ env.KERNEL_VERSION }}
+          name: ubuntu2204-bbrplus-arm64-${{ steps.version.outputs.kernel_version }}
           path: dist/*
           if-no-files-found: error
 
       - name: Publish GitHub release
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_release == 'true'
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_release == 'true')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.KERNEL_VERSION }}-bbrplus
@@ -69,7 +95,7 @@ jobs:
           body: |
             Ubuntu 22.04 ARM64 BBRplus kernel packages.
 
-            Built from official Linux 6.7 source:
+            Built from official Linux 6.8 source:
             - Kernel version: `${{ env.KERNEL_VERSION }}`
             - Architecture: `arm64`
             - Oracle cloud config baseline: `6.8.0-1047-oracle`
