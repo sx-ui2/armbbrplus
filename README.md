@@ -32,6 +32,29 @@ To improve Oracle Cloud ARM compatibility, the build now imports the official Ub
 
 This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplus-6.x_stable`. The workflow now auto-detects the newest upstream `6.8.x` stable release from `kernel.org`, while still using the vendored `6.8.x` patch in this repository.
 
+## 一键安装
+
+目标机器如果已经是：
+
+- Ubuntu 22.04 ARM64
+- Ubuntu 24.04 ARM64
+
+可以直接一条命令安装当前适配版本的最新 release：
+
+```bash
+wget -N --no-check-certificate "https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/install.sh" && chmod +x install.sh && sudo ./install.sh --enable-bbrplus
+```
+
+如果 `raw.githubusercontent.com` 拉不动，也可以换你常用的镜像前缀。
+
+这个脚本会自动：
+
+- 识别当前是 `22.04` 还是 `24.04`
+- 匹配对应的最新 ARM64 release
+- 下载 release 里的 `.deb`
+- 自动安装内核并更新引导
+- 可选自动启用 `bbrplus`
+
 ## Workflow
 
 The workflows live at:
