@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_SLUG="${REPO_SLUG:-sx-ui2/armbbrplus}"
 API_URL="${API_URL:-https://api.github.com/repos/${REPO_SLUG}/releases}"
+AMD_SCRIPT_URL="${AMD_SCRIPT_URL:-https://github.000060000.xyz/tcpx.sh}"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -20,9 +21,10 @@ usage() {
   -h, --help            显示帮助
 
 说明:
-  这个脚本会自动识别当前 Ubuntu 版本和架构，只支持：
+ 这个脚本会自动识别当前 Ubuntu 版本和架构：
     - Ubuntu 22.04 ARM64
     - Ubuntu 24.04 ARM64
+    - Ubuntu AMD64：直接回落执行外部 AMD 安装脚本
 EOF
 }
 
@@ -42,8 +44,14 @@ detect_target() {
   arch="$(dpkg --print-architecture)"
   version="$(. /etc/os-release && echo "${VERSION_ID:-}")"
 
+  if [[ "${arch}" == "amd64" ]]; then
+    TARGET_NAME="Ubuntu AMD64"
+    TARGET_KIND="amd64"
+    return
+  fi
+
   [[ "${arch}" == "arm64" ]] || {
-    red "当前架构是 ${arch}，这个一键脚本目前只支持 arm64。"
+    red "当前架构是 ${arch}，这个一键脚本目前只支持 arm64 / amd64。"
     exit 1
   }
 
@@ -51,16 +59,28 @@ detect_target() {
     22.04)
       TARGET_NAME="Ubuntu 22.04 ARM64"
       TARGET_SUFFIX="-bbrplus"
+      TARGET_KIND="arm64"
       ;;
     24.04)
       TARGET_NAME="Ubuntu 24.04 ARM64"
       TARGET_SUFFIX="-bbrplus-ubuntu2404"
+      TARGET_KIND="arm64"
       ;;
     *)
       red "当前系统版本是 ${version:-unknown}，这个一键脚本目前只支持 Ubuntu 22.04 / 24.04 ARM64。"
       exit 1
       ;;
   esac
+}
+
+run_amd_installer() {
+  local script_path="$1"
+  shift
+  yellow "检测到目标系统: ${TARGET_NAME}"
+  yellow "AMD64 将直接执行外部安装脚本: ${AMD_SCRIPT_URL}"
+  curl -fsSL --retry 3 --retry-delay 2 -o "${script_path}" "${AMD_SCRIPT_URL}"
+  chmod +x "${script_path}"
+  bash "${script_path}" "$@"
 }
 
 resolve_release_tag() {
@@ -164,6 +184,19 @@ cleanup() {
 main() {
   local requested_tag="" do_enable_bbrplus=0 no_reboot=0
 
+  require_root
+  require_cmd curl
+  require_cmd dpkg
+  detect_target
+
+  WORK_DIR="$(mktemp -d /tmp/armbbrplus-install.XXXXXX)"
+  trap cleanup EXIT
+
+  if [[ "${TARGET_KIND}" == "amd64" ]]; then
+    run_amd_installer "${WORK_DIR}/amd-install.sh" "$@"
+    exit 0
+  fi
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --tag)
@@ -190,16 +223,10 @@ main() {
     esac
   done
 
-  require_root
-  require_cmd curl
-  require_cmd dpkg
   require_cmd apt-get
   require_cmd python3
-  detect_target
-  resolve_release_tag "${requested_tag}"
 
-  WORK_DIR="$(mktemp -d /tmp/armbbrplus-install.XXXXXX)"
-  trap cleanup EXIT
+  resolve_release_tag "${requested_tag}"
 
   yellow "检测到目标系统: ${TARGET_NAME}"
   yellow "准备安装 release: ${RELEASE_TAG}"
