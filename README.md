@@ -1,6 +1,9 @@
 # armbbrplus
 
-GitHub Actions auto-builds Ubuntu ARM64 `6.8.x-bbrplus` kernel package sets for both `22.04` and `24.04`.
+GitHub Actions auto-builds Ubuntu ARM64 `6.8.x-bbrplus` kernel package sets for:
+
+- `22.04 ARM64`
+- `24.04 ARM64`
 
 This repository keeps the `6.8.x` BBRplus conversion patch inside the repo and builds from the official Linux `6.8.x` source tarball from `kernel.org`, so the workflow does not depend on a third-party patch URL at build time.
 To improve Oracle Cloud ARM compatibility, the build now imports the official Ubuntu Oracle ARM64 kernel config from the published `linux-headers-6.8.0-1047-oracle` package and layers the minimal BBRplus delta on top of that baseline.
@@ -38,7 +41,7 @@ The workflows live at:
 
 It supports:
 
-- `push` to `main`: build and upload workflow artifacts
+- `push` to `main`: build and publish the corresponding release
 - `workflow_dispatch`: manual build, with optional GitHub release publishing
 
 ## Manual Run
