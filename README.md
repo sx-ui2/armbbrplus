@@ -34,26 +34,21 @@ This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplu
 
 ## 一键安装
 
-目标机器如果已经是：
-
-- Ubuntu 22.04 ARM64
-- Ubuntu 24.04 ARM64
-
-可以直接一条命令安装当前适配版本的最新 release：
+可以直接一条命令启动脚本：
 
 ```bash
-wget -N --no-check-certificate "https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/install.sh" && chmod +x install.sh && sudo ./install.sh --enable-bbrplus
+wget -N --no-check-certificate "https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/install.sh" && chmod +x install.sh && sudo ./install.sh
 ```
 
-如果 `raw.githubusercontent.com` 拉不动，也可以换你常用的镜像前缀。
+这个 `install.sh` 的行为是：
 
-这个脚本会自动：
+- `AMD64`：直接执行原版 `tcpx.sh`，保留原有全部功能
+- `ARM64`：也执行原版 `tcpx.sh`，但在“安装 BBRplus 内核”这一步改为使用本仓库 release 里的 ARM 内核包
 
-- 识别当前是 `22.04` 还是 `24.04`
-- 匹配对应的最新 ARM64 release
-- 下载 release 里的 `.deb`
-- 自动安装内核并更新引导
-- 可选自动启用 `bbrplus`
+也就是说：
+
+- 菜单、参数、其他加速方案仍然是原脚本
+- 只有 `ARM64` 选择 `BBRplus` 内核安装时，会切换到我们自己的内核发布源
 
 ## Workflow
 
