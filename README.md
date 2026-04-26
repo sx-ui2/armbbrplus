@@ -65,6 +65,36 @@ Artifacts will be written into:
 
 - `dist/`
 
+## Install On Another ARM Machine
+
+把 release 里的 `.deb` 文件下载到目标 Ubuntu 22.04 ARM64 机器后，可以直接用仓库自带脚本安装：
+
+```bash
+sudo bash scripts/install-ubuntu2204-bbrplus-arm64.sh --dir ./dist --enable-bbrplus
+```
+
+如果你把脚本和 `.deb` 放在同一个目录，也可以：
+
+```bash
+cd /path/to/kernel-debs
+sudo bash install-ubuntu2204-bbrplus-arm64.sh --enable-bbrplus
+```
+
+脚本会自动：
+
+- 安装 `linux-image / linux-headers / linux-modules`
+- 补跑 `apt-get -f install`
+- 更新 `initramfs`
+- 更新 `grub`
+- 如果系统带 `flash-kernel` 也会顺手执行
+
+安装完成后需要重启，再确认：
+
+```bash
+uname -r
+sysctl net.ipv4.tcp_congestion_control
+```
+
 ## Patch Source
 
 The vendored BBRplus patch set under `patches/6.7/` is based on:
