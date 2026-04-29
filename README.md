@@ -40,22 +40,31 @@ This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplu
 wget -O armbbrplus.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/armbbrplus.sh && chmod +x armbbrplus.sh && sudo ./armbbrplus.sh
 ```
 
+如果你想按原脚本名字使用，也可以：
+
+```bash
+wget -O tcpx.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/tcpx.sh && chmod +x tcpx.sh && sudo ./tcpx.sh
+```
+
 这个 `armbbrplus.sh` 的行为是：
 
-- 自包含菜单脚本，不再运行时下载外部加速脚本
-- `ARM64`：可以自动识别 Ubuntu 22.04 / 24.04，并从本仓库 release 下载对应的 BBRplus 内核包
-- `AMD64`：保留内置的 BBR/网络优化/转发/资源限制等功能；本仓库不发布 AMD64 BBRplus 内核包
+- 基于原版 `tcpx.sh` 直接修改，原菜单和原功能保留，不再运行时下载外部脚本
+- 仓库同时保存 `armbbrplus.sh` 与 `tcpx.sh`，两者内容一致，方便按不同名字下载
+- `ARM64`：选择 `2` 或 `5` 安装 BBRplus 时，会自动识别 Ubuntu 22.04 / 24.04，并从本仓库 release 下载对应内核包
+- `AMD64`：继续使用原脚本里的 AMD64 内核安装、加速、系统配置和内核管理逻辑
+- 菜单 `0` 更新脚本时也会从本仓库更新，不会切回上游原版脚本
 
 菜单内置功能：
 
+- 原版 TCP 加速脚本全部入口
 - 安装 ARM64 BBRplus 内核
-- 启用 `bbrplus + fq`
-- 启用 `bbr + fq`
+- 安装 BBR、Lotserver、Cloud、Zen、Xanmod 等原脚本支持的内核
+- 启用 `BBR / BBRplus / Lotserver / LotSpeed / brutal` 等原脚本支持的加速项
 - TCP 窗口优化，并保留当前正在使用的拥塞控制算法，避免把 `bbrplus` 改回 `bbr`
 - 开启 IPv4 / IPv6 内核转发
 - 系统资源限制优化
 - 屏蔽或恢复 Ping
-- 查看当前网络与内核状态
+- 查看、删除和管理内核
 
 ## Workflow
 
