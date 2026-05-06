@@ -45,6 +45,8 @@ wget -O armbbrplus.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/a
 - 默认优先按 `wget -N --no-check-certificate "https://github.000060000.xyz/tcpx.sh"` 方式拉取原版优化脚本
 - `AMD64`：直接执行原版 `tcpx.sh`，保留原有全部功能
 - `ARM64`：也执行原版 `tcpx.sh`，但在“安装 BBRplus 内核”这一步改为使用本仓库 release 里的 ARM 内核包
+- 需要运行 `lanziii/bbr-` 的网络优化功能时，可以执行 `sudo ./armbbrplus.sh tools`
+- `tools` 入口里的 BBR 安装会继续调用当前 `armbbrplus/tcpx` 逻辑；TCP 调优会保留当前正在使用的 `bbr` / `bbrplus`，不会强制改回 `bbr`
 
 也就是说：
 
