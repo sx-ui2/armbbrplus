@@ -28,7 +28,7 @@ To improve Oracle Cloud ARM compatibility, the build now imports the official Ub
 - Kernel line: Linux 6.8
 - Default kernel version: auto-detect latest `6.8.x`
 - Oracle config baseline: `6.17.0-1011-oracle`
-- Resulting kernel release suffix: `-bbrplus-ubuntu2404`
+- Resulting kernel release suffix: `-bbrplus`
 
 This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplus-6.x_stable`. The workflow now auto-detects the newest upstream `6.8.x` stable release from `kernel.org`, while still using the vendored `6.8.x` patch in this repository.
 
@@ -42,20 +42,13 @@ wget -O armbbrplus.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/a
 
 这个 `armbbrplus.sh` 的行为是：
 
-- 自包含菜单脚本，不再运行时下载外部加速脚本
-- `ARM64`：可以自动识别 Ubuntu 22.04 / 24.04，并从本仓库 release 下载对应的 BBRplus 内核包
-- `AMD64`：保留内置的 BBR/网络优化/转发/资源限制等功能；本仓库不发布 AMD64 BBRplus 内核包
+- `AMD64`：直接执行原版 `tcpx.sh`，保留原有全部功能
+- `ARM64`：也执行原版 `tcpx.sh`，但在“安装 BBRplus 内核”这一步改为使用本仓库 release 里的 ARM 内核包
 
-菜单内置功能：
+也就是说：
 
-- 安装 ARM64 BBRplus 内核
-- 启用 `bbrplus + fq`
-- 启用 `bbr + fq`
-- TCP 窗口优化，并保留当前正在使用的拥塞控制算法，避免把 `bbrplus` 改回 `bbr`
-- 开启 IPv4 / IPv6 内核转发
-- 系统资源限制优化
-- 屏蔽或恢复 Ping
-- 查看当前网络与内核状态
+- 菜单、参数、其他加速方案仍然是原脚本
+- 只有 `ARM64` 选择 `BBRplus` 内核安装时，会切换到我们自己的内核发布源
 
 ## Workflow
 
