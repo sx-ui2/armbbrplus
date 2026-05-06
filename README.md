@@ -28,7 +28,7 @@ To improve Oracle Cloud ARM compatibility, the build now imports the official Ub
 - Kernel line: Linux 6.8
 - Default kernel version: auto-detect latest `6.8.x`
 - Oracle config baseline: `6.17.0-1011-oracle`
-- Resulting kernel release suffix: `-bbrplus-ubuntu2404`
+- Resulting kernel release suffix: `-bbrplus`
 
 This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplus-6.x_stable`. The workflow now auto-detects the newest upstream `6.8.x` stable release from `kernel.org`, while still using the vendored `6.8.x` patch in this repository.
 
@@ -40,31 +40,15 @@ This repo is aligned to the public `6.8.x-bbrplus` patch line from `UJX6N/bbrplu
 wget -O armbbrplus.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/armbbrplus.sh && chmod +x armbbrplus.sh && sudo ./armbbrplus.sh
 ```
 
-如果你想按原脚本名字使用，也可以：
-
-```bash
-wget -O tcpx.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/tcpx.sh && chmod +x tcpx.sh && sudo ./tcpx.sh
-```
-
 这个 `armbbrplus.sh` 的行为是：
 
-- 基于原版 `tcpx.sh` 直接修改，原菜单和原功能保留，不再运行时下载外部脚本
-- 仓库同时保存 `armbbrplus.sh` 与 `tcpx.sh`，两者内容一致，方便按不同名字下载
-- `ARM64`：选择 `2` 或 `5` 安装 BBRplus 时，会自动识别 Ubuntu 22.04 / 24.04，并从本仓库 release 下载对应内核包
-- `AMD64`：继续使用原脚本里的 AMD64 内核安装、加速、系统配置和内核管理逻辑
-- 菜单 `0` 更新脚本时也会从本仓库更新，不会切回上游原版脚本
+- `AMD64`：直接执行原版 `tcpx.sh`，保留原有全部功能
+- `ARM64`：也执行原版 `tcpx.sh`，但在“安装 BBRplus 内核”这一步改为使用本仓库 release 里的 ARM 内核包
 
-菜单内置功能：
+也就是说：
 
-- 原版 TCP 加速脚本全部入口
-- 安装 ARM64 BBRplus 内核
-- 安装 BBR、Lotserver、Cloud、Zen、Xanmod 等原脚本支持的内核
-- 启用 `BBR / BBRplus / Lotserver / LotSpeed / brutal` 等原脚本支持的加速项
-- TCP 窗口优化，并保留当前正在使用的拥塞控制算法，避免把 `bbrplus` 改回 `bbr`
-- 开启 IPv4 / IPv6 内核转发
-- 系统资源限制优化
-- 屏蔽或恢复 Ping
-- 查看、删除和管理内核
+- 菜单、参数、其他加速方案仍然是原脚本
+- 只有 `ARM64` 选择 `BBRplus` 内核安装时，会切换到我们自己的内核发布源
 
 ## Workflow
 
