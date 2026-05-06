@@ -13,15 +13,16 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 usage() {
   cat <<'EOF'
 用法:
-  sudo bash install.sh [原脚本参数]
+  sudo bash armbbrplus.sh [原脚本参数]
 
 说明:
-  - AMD64: 直接执行原版 tcpx.sh，保留原有全部功能
+  - 默认优先使用 wget -N --no-check-certificate 拉取原版 tcpx.sh
+  - AMD64: 直接执行原版 tcpx.sh，保留原有全部优化功能
   - ARM64: 仍然执行原版 tcpx.sh，但在“安装 BBRplus 内核”这一步改用本仓库 release 里的内核包
 
 示例:
-  sudo bash install.sh
-  sudo bash install.sh op0
+  sudo bash armbbrplus.sh
+  sudo bash armbbrplus.sh op0
 EOF
 }
 
@@ -55,8 +56,30 @@ detect_target() {
 
 download_upstream_script() {
   local dest="$1"
-  if ! curl -fsSL --retry 3 --retry-delay 2 -o "${dest}" "${UPSTREAM_SCRIPT_URL}"; then
-    yellow "主下载地址不可用，回退到 GitHub 原始地址。"
+  local dest_dir downloaded
+  dest_dir="$(dirname "${dest}")"
+  downloaded="${dest_dir}/$(basename "${UPSTREAM_SCRIPT_URL%%\?*}")"
+
+  if command -v wget >/dev/null 2>&1; then
+    if wget -N --no-check-certificate -P "${dest_dir}" "${UPSTREAM_SCRIPT_URL}"; then
+      [[ "${downloaded}" == "${dest}" ]] || mv -f "${downloaded}" "${dest}"
+      chmod +x "${dest}"
+      return
+    fi
+    yellow "wget 下载主优化脚本失败，尝试 curl。"
+  fi
+
+  if command -v curl >/dev/null 2>&1 && curl -fsSL --retry 3 --retry-delay 2 -o "${dest}" "${UPSTREAM_SCRIPT_URL}"; then
+    chmod +x "${dest}"
+    return
+  fi
+
+  yellow "主下载地址不可用，回退到 GitHub 原始地址。"
+  if command -v wget >/dev/null 2>&1; then
+    downloaded="${dest_dir}/$(basename "${UPSTREAM_SCRIPT_FALLBACK_URL%%\?*}")"
+    wget -N --no-check-certificate -P "${dest_dir}" "${UPSTREAM_SCRIPT_FALLBACK_URL}"
+    [[ "${downloaded}" == "${dest}" ]] || mv -f "${downloaded}" "${dest}"
+  else
     curl -fsSL --retry 3 --retry-delay 2 -o "${dest}" "${UPSTREAM_SCRIPT_FALLBACK_URL}"
   fi
   chmod +x "${dest}"
@@ -173,9 +196,15 @@ PY
 
 main() {
   require_root
-  require_cmd curl
   require_cmd dpkg
   detect_target
+  if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
+    red "缺少下载工具: 请先安装 wget 或 curl。"
+    exit 1
+  fi
+  if [[ "${TARGET_KIND}" == "arm64" ]]; then
+    require_cmd python3
+  fi
 
   local work_dir="" script_path=""
   work_dir="$(mktemp -d /tmp/tcpx-launch.XXXXXX)"

@@ -42,6 +42,7 @@ wget -O armbbrplus.sh https://raw.githubusercontent.com/sx-ui2/armbbrplus/main/a
 
 这个 `armbbrplus.sh` 的行为是：
 
+- 默认优先按 `wget -N --no-check-certificate "https://github.000060000.xyz/tcpx.sh"` 方式拉取原版优化脚本
 - `AMD64`：直接执行原版 `tcpx.sh`，保留原有全部功能
 - `ARM64`：也执行原版 `tcpx.sh`，但在“安装 BBRplus 内核”这一步改为使用本仓库 release 里的 ARM 内核包
 
